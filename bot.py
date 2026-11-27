@@ -18,18 +18,18 @@ from telegram.ext import (
 )
 
 # ================= কনফিগারেশন =================
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8222516603:AAGv9fph1jkZJKnzoSCvZddbZ7sUoDo5yzg")
-ADMIN_IDS = [6985943036]  # এখানে তোমার টেলিগ্রাম নিউমেরিক ইউজার আইডি বসাও
+BOT_TOKEN = "8222516603:AAGv9fph1jkZJKnzoSCvZddbZ7sUoDo5yzg"
+ADMIN_IDS = [6985943036]
 
-# ফোর্স সাবস্ক্রাইব চ্যানেল (বটকে চ্যানেলের অ্যাডমিন করতে হবে)
+# ফোর্স সাবস্ক্রাইব চ্যানেল (৩-৪টি চ্যানেল বসিয়ে বটকে সব চ্যানেলের Admin করতে হবে)
 FORCE_CHANNELS = [
-    {"name": "Join Channel 1", "chat_id": "@your_channel_1", "url": "https://t.me/Miteam_official786_bd"},
-    {"name": "Join Channel 2", "chat_id": "@your_channel_2", "url": "https://t.me/Miteam_official786_bd"},
-    {"name": "Join Channel 3", "chat_id": "@your_channel_3", "url": "https://t.me/Miteam_official786_bd"},
+    {"name": "Join Channel", "chat_id": "@your_channel_1", "url": "https://t.me/your_channel_1"},
+    {"name": "Join Channel", "chat_id": "@your_channel_2", "url": "https://t.me/your_channel_2"},
+    {"name": "Join Channel", "chat_id": "@your_channel_3", "url": "https://t.me/your_channel_3"},
 ]
 
 DB_FILE = "bot_data.json"
-REFERRAL_REWARD = 10  # প্রতি রেফারে পয়েন্ট/ব্যালেন্স
+REFERRAL_REWARD = 10
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -41,8 +41,29 @@ logger = logging.getLogger(__name__)
 def load_db():
     if not os.path.exists(DB_FILE):
         data = {
-            "users": {},      # user_id: {"name": ..., "balance": 0, "referrals": 0, "banned": False, "ref_by": None}
-            "files": {},      # category_name: {"type": "document"|"video"|"photo", "file_id": ..., "caption": ...}
+            "users": {},
+            "files": {
+                "Ai Image Generator": {
+                    "type": "text",
+                    "content": "Ai Image Generator - New Update Coming Soon....",
+                    "caption": "Ai Image Generator - New Update Coming Soon....",
+                },
+                "Info Python File": {
+                    "type": "text",
+                    "content": "Info Python File - New Update Coming Soon....",
+                    "caption": "Info Python File - New Update Coming Soon....",
+                },
+                "Camera Hacking": {
+                    "type": "text",
+                    "content": "Camera Hacking - New Update Coming Soon....",
+                    "caption": "Camera Hacking - New Update Coming Soon....",
+                },
+                "Screen Capture File": {
+                    "type": "text",
+                    "content": "Screen Capture File - New Update Coming Soon....",
+                    "caption": "Screen Capture File - New Update Coming Soon....",
+                },
+            },
         }
         save_db(data)
         return data
@@ -94,37 +115,35 @@ async def check_force_sub(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> b
 
 def force_sub_markup() -> InlineKeyboardMarkup:
     rows = []
-    for ch in FORCE_CHANNELS:
-        rows.append([InlineKeyboardButton(f"📢 {ch['name']}", url=ch["url"])])
+    for i in range(0, len(FORCE_CHANNELS), 2):
+        row = [InlineKeyboardButton(f"↗️ {FORCE_CHANNELS[i]['name']}", url=FORCE_CHANNELS[i]["url"])]
+        if i + 1 < len(FORCE_CHANNELS):
+            row.append(InlineKeyboardButton(f"↗️ {FORCE_CHANNELS[i+1]['name']}", url=FORCE_CHANNELS[i+1]["url"]))
+        rows.append(row)
     rows.append([InlineKeyboardButton("🟢 JOINED", callback_data="check_joined")])
     return InlineKeyboardMarkup(rows)
 
 
-# ================= কীবোর্ড লেআউট =================
-def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
+# ================= কীবোর্ড লেআউট (স্ক্রিনশটের মতো ৬ বাটন) =================
+def main_menu_keyboard() -> ReplyKeyboardMarkup:
     keyboard = [
         [KeyboardButton("💎 GET CODE 💎")],
         [KeyboardButton("👥 Referral"), KeyboardButton("💰 Balance")],
         [KeyboardButton("📖 How To Use")],
         [KeyboardButton("🆔 Chat Id"), KeyboardButton("👤 My Account")],
-        [KeyboardButton("💸 Withdraw")],
     ]
-    if is_admin(user_id):
-        keyboard.append([KeyboardButton("🛠️ Admin Panel")])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 def code_categories_keyboard(db) -> ReplyKeyboardMarkup:
     categories = list(db["files"].keys())
-    if not categories:
-        categories = ["AI Image Generator", "Info Python File", "Camera Hacking", "Screen Capture File"]
     rows = []
     for i in range(0, len(categories), 2):
         row = [KeyboardButton(categories[i])]
         if i + 1 < len(categories):
             row.append(KeyboardButton(categories[i + 1]))
         rows.append(row)
-    rows.append([KeyboardButton("🔙 Back To Main Menu")])
+    rows.append([KeyboardButton("🔙 Back")])
     return ReplyKeyboardMarkup(rows, resize_keyboard=True)
 
 
@@ -132,7 +151,7 @@ def admin_panel_keyboard() -> ReplyKeyboardMarkup:
     keyboard = [
         [KeyboardButton("📤 Upload File"), KeyboardButton("📢 Broadcast")],
         [KeyboardButton("👥 User List"), KeyboardButton("🚫 Ban/Unban User")],
-        [KeyboardButton("🔙 Back To Main Menu")],
+        [KeyboardButton("💸 Withdraw Requests"), KeyboardButton("🔙 Main Menu")],
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -148,21 +167,34 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     u_data = get_user(db, user.id, user.first_name, ref_by=ref_by)
     if u_data.get("banned"):
-        await update.message.reply_text("🚫 আপনি এই বট থেকে ব্যান হয়েছেন।")
+        await update.message.reply_text("🚫 You are banned from using this bot.")
         return
 
     if FORCE_CHANNELS and not await check_force_sub(user.id, context):
         await update.message.reply_text(
-            f"👋 হ্যালো **{user.first_name}**!\n\n"
-            "বট ব্যবহার করতে নিচের সব চ্যানেলে জয়েন করে **JOINED** বাটনে চাপ দিন:",
+            f"👋 HEY **{user.first_name}**\n\n"
+            "➡️ After Joining All Channels,\n"
+            "Click On 🟢 **JOINED**",
             reply_markup=force_sub_markup(),
             parse_mode="Markdown",
         )
         return
 
     await update.message.reply_text(
-        f"✨ স্বাগতম **{user.first_name}**!\nনিচের মেনু থেকে অপশন বেছে নিন:",
-        reply_markup=main_menu_keyboard(user.id),
+        f"Welcome To **{user.first_name}**",
+        reply_markup=main_menu_keyboard(),
+        parse_mode="Markdown",
+    )
+
+
+async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not is_admin(user.id):
+        return
+    db = load_db()
+    await update.message.reply_text(
+        f"🛠️ **Admin Control Panel**\nTotal Users: **{len(db['users'])}**",
+        reply_markup=admin_panel_keyboard(),
         parse_mode="Markdown",
     )
 
@@ -175,7 +207,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u_data = get_user(db, user.id, user.first_name)
 
     if u_data.get("banned"):
-        await query.answer("🚫 আপনি ব্যান হয়েছেন!", show_alert=True)
+        await query.answer("🚫 You are banned!", show_alert=True)
         return
 
     if data == "check_joined":
@@ -183,11 +215,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.delete()
             await context.bot.send_message(
                 chat_id=user.id,
-                text="✅ ভেরিফিকেশন সফল! মূল মেনুতে স্বাগতম:",
-                reply_markup=main_menu_keyboard(user.id),
+                text="✅ Verified! Welcome to Main Menu:",
+                reply_markup=main_menu_keyboard(),
             )
         else:
-            await query.answer("❌ এখনো সব চ্যানেলে জয়েন করেননি!", show_alert=True)
+            await query.answer("❌ Join all channels first!", show_alert=True)
 
     elif data.startswith("req_file|"):
         cat_name = data.split("|", 1)[1]
@@ -198,9 +230,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
         ])
         await query.message.reply_text(
-            f"⚡ **{cat_name}**\n\nফাইলটি পেতে নিচের **Confirm** বাটনে চাপ দিন:",
+            "⚡ Please Click On Confirm",
             reply_markup=markup,
-            parse_mode="Markdown",
         )
         await query.answer()
 
@@ -208,27 +239,28 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cat_name = data.split("|", 1)[1]
         file_info = db["files"].get(cat_name)
         if not file_info:
-            await query.message.reply_text("⚠️ এই ক্যাটাগরিতে এখনো কোনো ফাইল আপলোড করা হয়নি।")
+            await query.message.reply_text(f"{cat_name}\nNew Update Coming Soon....")
             await query.answer()
             return
 
-        ftype = file_info["type"]
-        fid = file_info["file_id"]
-        cap = file_info.get("caption") or f"📦 {cat_name}"
+        ftype = file_info.get("type", "text")
+        cap = file_info.get("caption") or cat_name
 
         if ftype == "document":
-            await query.message.reply_document(document=fid, caption=cap)
+            await query.message.reply_document(document=file_info["file_id"], caption=cap)
         elif ftype == "photo":
-            await query.message.reply_photo(photo=fid, caption=cap)
+            await query.message.reply_photo(photo=file_info["file_id"], caption=cap)
         elif ftype == "video":
-            await query.message.reply_video(video=fid, caption=cap)
+            await query.message.reply_video(video=file_info["file_id"], caption=cap)
+        elif ftype == "voice":
+            await query.message.reply_voice(voice=file_info["file_id"], caption=cap)
         else:
-            await query.message.reply_text(cap)
-        await query.answer("✅ ফাইল পাঠানো হয়েছে!")
+            await query.message.reply_text(file_info.get("content") or cap)
+        await query.answer("✅ Sent!")
 
     elif data == "cancel_file":
         await query.message.delete()
-        await query.answer("বাতিল করা হয়েছে।")
+        await query.answer("Cancelled")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -240,29 +272,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     u_data = get_user(db, user.id, user.first_name)
 
     if u_data.get("banned"):
-        await update.message.reply_text("🚫 আপনি এই বট থেকে ব্যান হয়েছেন।")
+        await update.message.reply_text("🚫 You are banned from using this bot.")
         return
 
     if FORCE_CHANNELS and not await check_force_sub(user.id, context):
         await update.message.reply_text(
-            "⚠️ আগে সব চ্যানেলে জয়েন করুন:",
+            "⚠️ Join all channels first and click JOINED:",
             reply_markup=force_sub_markup(),
         )
         return
 
-    # ---------- অ্যাডমিন স্টেট প্রসেসিং ----------
+    # ---------- অ্যাডমিন স্টেট হ্যান্ডলার ----------
     admin_state = context.user_data.get("admin_state")
     if is_admin(user.id) and admin_state:
-        if text == "🔙 Back To Main Menu" or text == "/cancel":
+        if text in ["🔙 Main Menu", "🔙 Back", "/cancel"]:
             context.user_data.clear()
-            await update.message.reply_text("মূল মেনু:", reply_markup=main_menu_keyboard(user.id))
+            await update.message.reply_text("Main Menu:", reply_markup=main_menu_keyboard())
             return
 
         if admin_state == "upload_cat":
             context.user_data["upload_category"] = text.strip()
             context.user_data["admin_state"] = "upload_media"
             await update.message.reply_text(
-                f"ক্যাটাগরি: **{text.strip()}**\nএখন ফাইল (Document), ছবি (Photo) অথবা ভিডিও (Video) পাঠান:",
+                f"Category: **{text.strip()}**\nNow send Document, Photo, Video, Voice or Text:",
                 parse_mode="Markdown",
             )
             return
@@ -270,35 +302,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif admin_state == "upload_media":
             cat = context.user_data.get("upload_category")
             if update.message.document:
-                ftype = "document"
-                fid = update.message.document.file_id
+                ftype, fid = "document", update.message.document.file_id
             elif update.message.photo:
-                ftype = "photo"
-                fid = update.message.photo[-1].file_id
+                ftype, fid = "photo", update.message.photo[-1].file_id
             elif update.message.video:
-                ftype = "video"
-                fid = update.message.video.file_id
+                ftype, fid = "video", update.message.video.file_id
+            elif update.message.voice:
+                ftype, fid = "voice", update.message.voice.file_id
+            elif update.message.text:
+                db["files"][cat] = {
+                    "type": "text",
+                    "content": update.message.text,
+                    "caption": update.message.text,
+                }
+                save_db(db)
+                context.user_data.clear()
+                await update.message.reply_text(f"✅ Saved text for **{cat}**!", reply_markup=admin_panel_keyboard(), parse_mode="Markdown")
+                return
             else:
-                await update.message.reply_text("❌ দয়া করে একটি বৈধ ফাইল, ছবি বা ভিডিও পাঠান।")
+                await update.message.reply_text("❌ Unsupported file type.")
                 return
 
             db["files"][cat] = {
                 "type": ftype,
                 "file_id": fid,
-                "caption": update.message.caption or f"📦 {cat}",
+                "caption": update.message.caption or cat,
             }
             save_db(db)
             context.user_data.clear()
-            await update.message.reply_text(
-                f"✅ **{cat}** ক্যাটাগরিতে ফাইল সেভ হয়েছে!",
-                reply_markup=admin_panel_keyboard(),
-                parse_mode="Markdown",
-            )
+            await update.message.reply_text(f"✅ Uploaded to **{cat}**!", reply_markup=admin_panel_keyboard(), parse_mode="Markdown")
             return
 
         elif admin_state == "broadcast":
-            sent = 0
-            failed = 0
+            sent, failed = 0, 0
             for uid in list(db["users"].keys()):
                 try:
                     await context.bot.copy_message(
@@ -311,7 +347,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     failed += 1
             context.user_data.clear()
             await update.message.reply_text(
-                f"📢 ব্রডকাস্ট সম্পন্ন!\n✅ সফল: {sent} | ❌ ব্যর্থ: {failed}",
+                f"📢 Broadcast Complete!\n✅ Sent: {sent} | ❌ Failed: {failed}",
                 reply_markup=admin_panel_keyboard(),
             )
             return
@@ -319,138 +355,104 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif admin_state == "ban_toggle":
             target_id = text.strip()
             if target_id in db["users"]:
-                current = db["users"][target_id].get("banned", False)
-                db["users"][target_id]["banned"] = not current
+                cur = db["users"][target_id].get("banned", False)
+                db["users"][target_id]["banned"] = not cur
                 save_db(db)
-                status = "ব্যান (Banned)" if not current else "আনব্যান (Unbanned)"
-                await update.message.reply_text(
-                    f"✅ ইউজার `{target_id}` এখন **{status}** অবস্থায় আছে।",
-                    reply_markup=admin_panel_keyboard(),
-                    parse_mode="Markdown",
-                )
+                status = "BANNED" if not cur else "UNBANNED"
+                await update.message.reply_text(f"✅ User `{target_id}` is now **{status}**.", reply_markup=admin_panel_keyboard(), parse_mode="Markdown")
             else:
-                await update.message.reply_text("❌ এই ইউজার আইডি ডেটাবেসে পাওয়া যায়নি।")
+                await update.message.reply_text("❌ User ID not found.")
             context.user_data.clear()
             return
 
-    # ---------- ইউজার ও অ্যাডমিন বাটন হ্যান্ডলার ----------
+    # ---------- মেইন মেনু বাটনসমূহ ----------
     if text == "💎 GET CODE 💎":
         await update.message.reply_text(
-            "🔥 ক্যাটাগরি সিলেক্ট করুন:",
+            "Welcome To Code Store Bot",
             reply_markup=code_categories_keyboard(db),
         )
 
-    elif text == "🔙 Back To Main Menu":
+    elif text in ["🔙 Back", "🔙 Main Menu"]:
         context.user_data.clear()
         await update.message.reply_text(
-            "🏠 মূল মেনু:",
-            reply_markup=main_menu_keyboard(user.id),
+            "Main Menu:",
+            reply_markup=main_menu_keyboard(),
         )
 
     elif text == "👥 Referral":
         bot_username = (await context.bot.get_me()).username
         ref_link = f"https://t.me/{bot_username}?start=ref_{user.id}"
         await update.message.reply_text(
-            f"🎁 **রেফারেল সিস্টেম**\n\n"
-            f"প্রতি সফল রেফারে পাবেন **{REFERRAL_REWARD}** পয়েন্ট!\n"
-            f"মোট রেফার: **{u_data['referrals']}**\n\n"
-            f"🔗 আপনার রেফার লিংক:\n`{ref_link}`",
+            f"🎁 **Referral System**\n\n"
+            f"Reward per referral: **{REFERRAL_REWARD}**\n"
+            f"Total Referrals: **{u_data['referrals']}**\n"
+            f"Balance: **{u_data['balance']}**\n\n"
+            f"🔗 Your Link:\n`{ref_link}`",
             parse_mode="Markdown",
         )
 
     elif text == "💰 Balance":
         await update.message.reply_text(
-            f"💰 আপনার বর্তমান ব্যালেন্স: **{u_data['balance']}** পয়েন্ট",
+            f"💰 Your Balance: **{u_data['balance']}**",
             parse_mode="Markdown",
         )
 
     elif text == "🆔 Chat Id":
-        await update.message.reply_text(f"🆔 আপনার Chat ID: `{user.id}`", parse_mode="Markdown")
+        await update.message.reply_text(f"🆔 Your Chat ID: `{user.id}`", parse_mode="Markdown")
 
     elif text == "👤 My Account":
         await update.message.reply_text(
-            f"👤 **অ্যাকাউন্ট তথ্য**\n\n"
-            f"নাম: {user.full_name}\n"
-            f"ID: `{user.id}`\n"
-            f"ব্যালেন্স: **{u_data['balance']}**\n"
-            f"রেফারেল: **{u_data['referrals']}**",
+            f"👤 **My Account**\n\n"
+            f"Name: {user.full_name}\n"
+            f"Chat ID: `{user.id}`\n"
+            f"Balance: **{u_data['balance']}**\n"
+            f"Referrals: **{u_data['referrals']}**",
             parse_mode="Markdown",
         )
 
     elif text == "📖 How To Use":
         await update.message.reply_text(
-            "📖 **ব্যবহারবিধি**\n\n"
-            "১. সব চ্যানেলে জয়েন করে JOINED চাপুন।\n"
-            "২. `💎 GET CODE 💎` থেকে ক্যাটাগরি বেছে নিন।\n"
-            "৩. ইনলাইন বাটনে ক্লিক করে **Confirm** চাপলেই ফাইল পাবেন।"
+            "📖 **How To Use**\n\n"
+            "1. Join all channels & click JOINED.\n"
+            "2. Click `💎 GET CODE 💎` and choose a category.\n"
+            "3. Click the inline button and press **Confirm** to get your file."
         )
 
-    elif text == "💸 Withdraw":
-        if u_data["balance"] <= 0:
-            await update.message.reply_text("❌ উইথড্র করার মতো পর্যাপ্ত ব্যালেন্স নেই।")
-            return
-        amt = u_data["balance"]
-        u_data["balance"] = 0
-        save_db(db)
-        await update.message.reply_text(f"✅ **{amt}** পয়েন্টের উইথড্র রিকোয়েস্ট সাবমিট হয়েছে!", parse_mode="Markdown")
-        for adm in ADMIN_IDS:
-            try:
-                await context.bot.send_message(
-                    chat_id=adm,
-                    text=f"💸 **নতুন উইথড্র রিকোয়েস্ট**\nইউজার: {user.full_name} (`{user.id}`)\nপরিমাণ: **{amt}**",
-                    parse_mode="Markdown",
-                )
-            except Exception:
-                pass
-
-    elif text == "🛠️ Admin Panel" and is_admin(user.id):
-        await update.message.reply_text(
-            "🛠️ **অ্যাডমিন কন্ট্রোল প্যানেল**\nমোট ইউজার: " + str(len(db["users"])),
-            reply_markup=admin_panel_keyboard(),
-            parse_mode="Markdown",
-        )
-
+    # ---------- অ্যাডমিন বাটনসমূহ ----------
     elif text == "📤 Upload File" and is_admin(user.id):
         context.user_data["admin_state"] = "upload_cat"
-        await update.message.reply_text(
-            "যে ক্যাটাগরিতে ফাইল আপলোড করতে চান তার নাম লিখুন (যেমন: `AI Image Generator`):",
-            parse_mode="Markdown",
-        )
+        await update.message.reply_text("Enter category name (e.g. `Ai Image Generator`):", parse_mode="Markdown")
 
     elif text == "📢 Broadcast" and is_admin(user.id):
         context.user_data["admin_state"] = "broadcast"
-        await update.message.reply_text(
-            "সব ইউজারকে যে মেসেজ, ছবি বা ভয়েস পাঠাতে চান তা এখন পাঠান:"
-        )
+        await update.message.reply_text("Send message, photo, voice, video or file to broadcast:")
 
     elif text == "👥 User List" and is_admin(user.id):
-        lines = [f"• `{uid}` — {info.get('name')} (Bal: {info.get('balance')}, Banned: {info.get('banned')})"
-                 for uid, info in list(db["users"].items())[:30]]
-        await update.message.reply_text(
-            "👥 **ইউজার লিস্ট (সর্বোচ্চ ৩০ জন):**\n\n" + ("\n".join(lines) or "কেউ নেই"),
-            parse_mode="Markdown",
-        )
+        lines = [
+            f"• `{uid}` - {info.get('name')} | Bal: {info.get('balance')} | Ban: {info.get('banned')}"
+            for uid, info in list(db["users"].items())[:30]
+        ]
+        await update.message.reply_text("👥 **Users:**\n\n" + ("\n".join(lines) or "Empty"), parse_mode="Markdown")
 
     elif text == "🚫 Ban/Unban User" and is_admin(user.id):
         context.user_data["admin_state"] = "ban_toggle"
-        await update.message.reply_text("যে ইউজারকে ব্যান বা আনব্যান করতে চান তার Chat ID লিখুন:")
+        await update.message.reply_text("Enter User Chat ID to Ban/Unban:")
 
-    elif text in db["files"] or text in ["AI Image Generator", "Info Python File", "Camera Hacking", "Screen Capture File"]:
+    # ---------- ক্যাটাগরি বাটন ক্লিক ----------
+    elif text in db["files"]:
         markup = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"⚡ {text}", callback_data=f"req_file|{text}")]
+            [InlineKeyboardButton(text, callback_data=f"req_file|{text}")]
         ])
         await update.message.reply_text(
-            f"📦 **{text}**\n\nNew Update Ready! নিচের বাটনে ক্লিক করুন:",
+            f"{text}\nNew Update Coming Soon....",
             reply_markup=markup,
-            parse_mode="Markdown",
         )
 
 
 def main():
-    if BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
-        print("⚠️ দয়া করে BOT_TOKEN এবং ADMIN_IDS সেট করুন।")
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("admin", admin_cmd))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_message))
     print("🤖 Bot is running...")
